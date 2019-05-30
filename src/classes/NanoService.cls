@@ -1,13 +1,12 @@
 public interface NanoService extends System.Callable {
-    Object  call(Map<String,Object> context);
-    Object  call(Map<String,Object> context, NanoService callback);    
-    Object  call(String action,Map<String,Object> context,NanoService callback);
-    
-    NanoService  thenCall(String action,Map<String,Object> context);
-    NanoService  thenCall(Map<String,Object> context);
-        
-    //always
-    NanoService  thenCall(NanoService service);
+      
+    Object  execute(String action,Map<String,Object> context,NanoService callback);
+    NanoService  thenExecute(String action,Map<String,Object> context);
+
+    Object  execute(Map<String,Object> context);
+    Object  execute(Map<String,Object> context, NanoService callback); 
+    NanoService  thenExecute(Map<String,Object> context);
+    NanoService  thenExecute(NanoService service);
     
     //execution passed
     NanoService  pass(NanoService service);
@@ -17,7 +16,7 @@ public interface NanoService extends System.Callable {
     
     NanoService  ifthen(Boolean condition,NanoService service);
     
-    Object stdout(Map<String,Object> output);
+    void stdout(Map<String,Object> output);
     void stderr(String key,Object obj);
 
     NanoService pipe(Object value);
@@ -26,4 +25,13 @@ public interface NanoService extends System.Callable {
 
     //get most recent execution result
     Object result();
+    //set result, this value is automatically piped to next nanoservice
+    Object result(Object value);
+
+    //utility methods
+    Object execute(Map<String,Object> context, String callback);
+    Object  execute(String action,Map<String,Object> context,String callback);
+    NanoService fail(String nanoService);
+    NanoService  pass(String nanoService);
+    NanoService  thenExecute(String nanoService);
 }

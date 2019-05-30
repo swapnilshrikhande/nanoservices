@@ -1,70 +1,71 @@
 public abstract class AbstractNanoService implements NanoService{
-    
-    public static final String OUTPUT = '__stdout';
     private Object              instream;
     private Object              outstream;
     
-
     private Map<String,Object> out;
     private Map<String,Object> error;
     
     class AbstractNanoServiceException extends Exception {}
     
-    public virtual Object call(String action,Map<String,Object> context){
+    public virtual Object call(String action,Map<String,Object> params){
+        return execute(action,params);
+    }
+
+    public virtual Object execute(String action,Map<String,Object> params){
         //nop
-        throw new AbstractNanoServiceException('call(string,map<string,object>) method not overriden by the nanoservice');
+        throw new AbstractNanoServiceException('execute(string,map<string,object>) method not overriden by the nanoservice');
     }
     
-    public virtual Object call(Map<String,Object> context){
-    	throw new AbstractNanoServiceException('call(map<String,object>) method not overriden by the nanoservice');
+    public virtual Object execute(Map<String,Object> params){
+    	throw new AbstractNanoServiceException('execute(map<String,object>) method not overriden by the nanoservice');
     }
     
-    public virtual Object call(Map<String,Object> context, NanoService callback){
-    	return callback.pipe ( this.outstream = this.call(context) )
-                       .call(this.out);
+    public virtual Object execute(Map<String,Object> params, NanoService callback){
+    	return callback.pipe ( result( this.execute(params) ) )
+                       .execute( stdout() );
     }
 
-    public virtual Object call(Map<String,Object> context, String callback){
-        return call(context, service(callback) );
+    public virtual Object execute(Map<String,Object> params, String callback){
+        return execute(params, service(callback) );
     }
     
-    public virtual Object  call(String action,Map<String,Object> context,NanoService callback){
-        return callback.pipe( this.outstream = this.call(action,context) )
-                       .call(this.out);
+    public virtual Object  execute(String action,Map<String,Object> params,NanoService callback){
+        return callback.pipe( result( this.call(action,params) ) )
+                       .execute( stdout() );
     }
 
-    public virtual Object  call(String action,Map<String,Object> context,String callback){
-        return call(action, context, service(callback) );
+    public virtual Object  execute(String action,Map<String,Object> params,String callback){
+        return execute(action, params, service(callback) );
     }
     
-    public virtual NanoService  thenCall(String action,Map<String,Object> context){
-        this.outstream = this.call(action,context);
+    public virtual NanoService  thenExecute(String action,Map<String,Object> params){
+        result( this.execute(action,params) );
         return this;
     }
 
-	public virtual NanoService  thenCall(Map<String,Object> context){
-        this.outstream = this.call(context);
+	public virtual NanoService  thenExecute(Map<String,Object> params){
+        result( this.execute(params) );
         return this;
     }
     
     //always
-    public virtual NanoService  thenCall(NanoService service){
+    public virtual NanoService  thenExecute(NanoService service){
         
-        return service.pipe(this.outstream)
-                      .thenCall(this.out);
+        return service.pipe( result() )
+                      .thenExecute( stdout() );
         
     }
 
-    public virtual NanoService  thenCall(String nanoService){
-        return thenCall( service(nanoService) );
+    public virtual NanoService  thenExecute(String nanoService){
+        return thenExecute( service(nanoService) );
     }
     
     //execution passed
     public virtual NanoService  pass(NanoService service){
         
         if( error == null ){
-            return service.pipe(this.outstream)
-                          .thenCall(this.out);
+            return service.pipe( result() )
+                          .thenExecute( stdout() );
         } else {
             //nop
             return this;
@@ -85,8 +86,8 @@ public abstract class AbstractNanoService implements NanoService{
     public virtual NanoService fail(NanoService service){
         
         if( error != null ){
-            return service.pipe(this.outstream)
-                          .thenCall(this.error);       
+            return service.pipe( result() )
+                          .thenExecute(this.error);       
         } else {
             //nop
             return this;
@@ -105,8 +106,8 @@ public abstract class AbstractNanoService implements NanoService{
     public virtual NanoService  ifthen(Boolean condition,NanoService service){
         
         if( condition ) {
-            return service.pipe(this.outstream)
-                          .thenCall(this.out);  
+            return service.pipe( result() )
+                          .thenExecute( stdout() );  
         } 
         
         return this;
@@ -122,17 +123,32 @@ public abstract class AbstractNanoService implements NanoService{
     }
 
 
+    public virtual Map<String,Object> stdout(){
+        return this.out == null ? this.out = new Map<String,Object>() : this.out ;
+    }
+
+    public virtual void stdout(String key,Object value) { 
+        stdout().put(key,value);
+    }
+
     public virtual void stdout(Map<String,Object> output){
         this.out = output;
     }
     
     public virtual void stderr(String key,Object result){
+
+        if( error == null )
+            error = new Map<String,Object>();
+
         error.put(key,result);
-        return;
 	}
 
-    public Object result() {
+    public virtual Object result() {
         return this.outstream;
+    }
+
+    public virtual Object result(Object value) {
+        return this.outstream = value;
     }
     
     public virtual NanoService service(String name){
@@ -140,11 +156,11 @@ public abstract class AbstractNanoService implements NanoService{
     }
 
     //execute an algorithm
-    public virtual Object call(List<String> algorithmList){
+    public virtual Object execute(List<String> algorithmList){
         NanoService lastService = this;
         for(String algorithm : algorithmList  ) {
             lastService = lastService.pipe( lastService.result() )
-                                     .thenCall( service( algorithm ) );
+                                     .thenExecute( service( algorithm ) );
         }
         return lastService.result();
     }

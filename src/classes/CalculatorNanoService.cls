@@ -1,12 +1,12 @@
 public class CalculatorNanoService extends AbstractNanoService {
 	
-    public override Object call(String action,Map<String,Object> context){
+    public override Object execute(String action,Map<String,Object> params){
         
-        service(action)
-            .thenCall(context)
-            .pass( service(action+'PassService') )
-            .fail( service(action+'FailService') );
-        
+        service('AdditionService')
+            .thenExecute(params)
+            .pass( 'AdditionServicePassService' )
+            .fail( 'AdditionServiceFailService' );
+       
         return null;
-    }
+    }	
 }
