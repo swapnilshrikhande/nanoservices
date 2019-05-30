@@ -1,7 +1,10 @@
 public abstract class AbstractNanoService implements NanoService{
     
     public static final String OUTPUT = '__stdout';
+    private Object              instream;
+    private Object              outstream;
     
+
     private Map<String,Object> out;
     private Map<String,Object> error;
     
@@ -17,73 +20,112 @@ public abstract class AbstractNanoService implements NanoService{
     }
     
     public virtual Object call(Map<String,Object> context, NanoService callback){
-    	 stdout(this.call(context));
-         return callback.call(out);
-    }   
+    	return callback.pipe ( this.outstream = this.call(context) )
+                       .call(this.out);
+    }
+
+    public virtual Object call(Map<String,Object> context, String callback){
+        return call(context, service(callback) );
+    }
     
     public virtual Object  call(String action,Map<String,Object> context,NanoService callback){
-        stdout(this.call(action,context));
-        return callback.call(out);
+        return callback.pipe( this.outstream = this.call(action,context) )
+                       .call(this.out);
+    }
+
+    public virtual Object  call(String action,Map<String,Object> context,String callback){
+        return call(action, context, service(callback) );
     }
     
     public virtual NanoService  thenCall(String action,Map<String,Object> context){
-        stdout(this.call(action,context));
+        this.outstream = this.call(action,context);
         return this;
     }
 
 	public virtual NanoService  thenCall(Map<String,Object> context){
-        stdout(this.call(context));
+        this.outstream = this.call(context);
         return this;
     }
     
     //always
     public virtual NanoService  thenCall(NanoService service){
-        service.stdout(service.call(out));
-        return service;
+        
+        return service.pipe(this.outstream)
+                      .thenCall(this.out);
+        
+    }
+
+    public virtual NanoService  thenCall(String nanoService){
+        return thenCall( service(nanoService) );
     }
     
     //execution passed
     public virtual NanoService  pass(NanoService service){
         
-        if( out != null ){
-            service.stdout(service.call(out));
-    		return service;        
+        if( error == null ){
+            return service.pipe(this.outstream)
+                          .thenCall(this.out);
         } else {
             //nop
             return this;
         }
     }
+
+    public virtual NanoService  pass(String nanoService){
+        
+        if( error == null ){
+            return pass( service(nanoService) );
+        }
+
+        return this;
+    }
+
     
     //execution failed
-    public virtual NanoService  fail(NanoService service){
+    public virtual NanoService fail(NanoService service){
         
         if( error != null ){
-            service.stdout(service.call(error));
-    		return service;        
+            return service.pipe(this.outstream)
+                          .thenCall(this.error);       
         } else {
             //nop
             return this;
         }
+    }
+
+    public virtual NanoService fail(String nanoService){
+        if( error != null ) {
+            return fail( service(nanoService) );
+        }
+
+        return this;
     }
     
     
     public virtual NanoService  ifthen(Boolean condition,NanoService service){
         
         if( condition ) {
-            service.stdout(service.call(out));
+            return service.pipe(this.outstream)
+                          .thenCall(this.out);  
         } 
         
         return this;
     }
+
+    public virtual Object pipe(){
+        return this.instream;
+    }
+
+    public virtual NanoService pipe(Object value){
+        this.instream = value;
+        return this;
+    }
+
+
+    public virtual void stdout(Map<String,Object> output){
+        this.out = output;
+    }
     
-    public virtual Object stdout(Object result){
-        if( out == null )
-            out = new Map<String,Object>();
-            
-        out.put(OUTPUT, result);
-        return result;
-	}
-     
     public virtual void stderr(String key,Object result){
         error.put(key,result);
         return;

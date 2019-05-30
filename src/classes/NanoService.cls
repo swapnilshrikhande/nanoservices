@@ -17,6 +17,10 @@ public interface NanoService extends System.Callable {
     
     NanoService  ifthen(Boolean condition,NanoService service);
     
-    Object stdout(Object obj);
+    Object stdout(Map<String,Object> output);
     void stderr(String key,Object obj);
+
+    NanoService pipe(Object value);
+
+    Object pipe();
 }
