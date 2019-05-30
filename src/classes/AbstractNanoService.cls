@@ -130,8 +130,22 @@ public abstract class AbstractNanoService implements NanoService{
         error.put(key,result);
         return;
 	}
+
+    public Object result() {
+        return this.outstream;
+    }
     
     public virtual NanoService service(String name){
         return NanoServiceFactory.getService(name);
+    }
+
+    //execute an algorithm
+    public virtual Object call(List<String> algorithmList){
+        NanoService lastService = this;
+        for(String algorithm : algorithmList  ) {
+            lastService = lastService.pipe( lastService.result() )
+                                     .thenCall( service( algorithm ) );
+        }
+        return lastService.result();
     }
 }

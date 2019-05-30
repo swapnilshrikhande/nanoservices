@@ -23,4 +23,7 @@ public interface NanoService extends System.Callable {
     NanoService pipe(Object value);
 
     Object pipe();
+
+    //get most recent execution result
+    Object result();
 }
