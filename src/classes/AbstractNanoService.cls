@@ -3,12 +3,16 @@ public abstract class AbstractNanoService implements NanoService{
     private Object              outstream;
     
     private Map<String,Object> out;
-    private Map<String,Object> error;
+    private Map<String,Object> errorMap;
     
     class AbstractNanoServiceException extends Exception {}
     
     public virtual Object call(String action,Map<String,Object> params){
         return execute(action,params);
+    }
+
+    public virtual Object execute(){
+        throw new AbstractNanoServiceException('execute() method not overriden by the nanoservice');
     }
 
     public virtual Object execute(String action,Map<String,Object> params){
@@ -22,7 +26,7 @@ public abstract class AbstractNanoService implements NanoService{
     
     public virtual Object execute(Map<String,Object> params, NanoService callback){
     	return callback.pipe ( result( this.execute(params) ) )
-                       .execute( stdout() );
+                       .execute( output() );
     }
 
     public virtual Object execute(Map<String,Object> params, String callback){
@@ -31,11 +35,17 @@ public abstract class AbstractNanoService implements NanoService{
     
     public virtual Object  execute(String action,Map<String,Object> params,NanoService callback){
         return callback.pipe( result( this.call(action,params) ) )
-                       .execute( stdout() );
+                       .execute( output() );
     }
 
     public virtual Object  execute(String action,Map<String,Object> params,String callback){
         return execute(action, params, service(callback) );
+    }
+
+
+    public virtual NanoService  thenExecute(){
+        result( this.execute() );
+        return this;
     }
     
     public virtual NanoService  thenExecute(String action,Map<String,Object> params){
@@ -52,7 +62,7 @@ public abstract class AbstractNanoService implements NanoService{
     public virtual NanoService  thenExecute(NanoService service){
         
         return service.pipe( result() )
-                      .thenExecute( stdout() );
+                      .thenExecute( output() );
         
     }
 
@@ -63,9 +73,9 @@ public abstract class AbstractNanoService implements NanoService{
     //execution passed
     public virtual NanoService  pass(NanoService service){
         
-        if( error == null ){
+        if( errorMap == null ){
             return service.pipe( result() )
-                          .thenExecute( stdout() );
+                          .thenExecute( output() );
         } else {
             //nop
             return this;
@@ -74,7 +84,7 @@ public abstract class AbstractNanoService implements NanoService{
 
     public virtual NanoService  pass(String nanoService){
         
-        if( error == null ){
+        if( errorMap == null ){
             return pass( service(nanoService) );
         }
 
@@ -85,9 +95,9 @@ public abstract class AbstractNanoService implements NanoService{
     //execution failed
     public virtual NanoService fail(NanoService service){
         
-        if( error != null ){
+        if( errorMap != null ){
             return service.pipe( result() )
-                          .thenExecute(this.error);       
+                          .thenExecute( errors() );       
         } else {
             //nop
             return this;
@@ -95,7 +105,7 @@ public abstract class AbstractNanoService implements NanoService{
     }
 
     public virtual NanoService fail(String nanoService){
-        if( error != null ) {
+        if( errorMap != null ) {
             return fail( service(nanoService) );
         }
 
@@ -103,11 +113,11 @@ public abstract class AbstractNanoService implements NanoService{
     }
     
     
-    public virtual NanoService  ifthen(Boolean condition,NanoService service){
+    public virtual NanoService  ifExecute(Boolean condition,NanoService service){
         
         if( condition ) {
             return service.pipe( result() )
-                          .thenExecute( stdout() );  
+                          .thenExecute( output() );  
         } 
         
         return this;
@@ -123,25 +133,29 @@ public abstract class AbstractNanoService implements NanoService{
     }
 
 
-    public virtual Map<String,Object> stdout(){
+    public virtual Map<String,Object> output(){
         return this.out == null ? this.out = new Map<String,Object>() : this.out ;
     }
 
-    public virtual void stdout(String key,Object value) { 
-        stdout().put(key,value);
+    public virtual void output(String key,Object value) { 
+        output().put(key,value);
     }
 
-    public virtual void stdout(Map<String,Object> output){
+    public virtual void output(Map<String,Object> output){
         this.out = output;
     }
     
-    public virtual void stderr(String key,Object result){
+    public virtual void error(String key,Object result){
 
-        if( error == null )
-            error = new Map<String,Object>();
+        if( errorMap == null )
+            errorMap = new Map<String,Object>();
 
-        error.put(key,result);
+        errorMap.put(key,result);
 	}
+
+    public virtual Map<String,Object> errors(){
+        return errorMap;
+    }
 
     public virtual Object result() {
         return this.outstream;
@@ -156,12 +170,23 @@ public abstract class AbstractNanoService implements NanoService{
     }
 
     //execute an algorithm
-    public virtual Object execute(List<String> algorithmList){
+    public virtual NanoService execute(List<String> algorithmList,Map<String,Object> params){
         NanoService lastService = this;
+        NanoService currentService;
         for(String algorithm : algorithmList  ) {
-            lastService = lastService.pipe( lastService.result() )
-                                     .thenExecute( service( algorithm ) );
+
+            currentService = service(algorithm);
+
+            lastService = currentService.pipe( lastService.result() )
+                                        .thenExecute( lastService == this ? 
+                                                        params 
+                                                      : lastService.output() 
+                                                    );
+
+            if( lastService.errors() != null )
+                break;
         }
-        return lastService.result();
+
+        return lastService;
     }
 }

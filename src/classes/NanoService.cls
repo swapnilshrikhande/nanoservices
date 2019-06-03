@@ -3,8 +3,12 @@ public interface NanoService extends System.Callable {
     Object  execute(String action,Map<String,Object> context,NanoService callback);
     NanoService  thenExecute(String action,Map<String,Object> context);
 
+    Object  execute();
     Object  execute(Map<String,Object> context);
-    Object  execute(Map<String,Object> context, NanoService callback); 
+    Object  execute(Map<String,Object> context, NanoService callback);
+
+
+    NanoService  thenExecute();
     NanoService  thenExecute(Map<String,Object> context);
     NanoService  thenExecute(NanoService service);
     
@@ -14,10 +18,13 @@ public interface NanoService extends System.Callable {
     //execution failed
     NanoService  fail(NanoService service);
     
-    NanoService  ifthen(Boolean condition,NanoService service);
+    NanoService  ifExecute(Boolean condition,NanoService service);
     
-    void stdout(Map<String,Object> output);
-    void stderr(String key,Object obj);
+    void output(Map<String,Object> output);
+    Map<String,Object> output();
+    
+    void error(String key,Object obj);
+    Map<String,Object> errors();
 
     NanoService pipe(Object value);
 

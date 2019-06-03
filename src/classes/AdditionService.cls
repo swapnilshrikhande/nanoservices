@@ -4,9 +4,13 @@ public class AdditionService extends AbstractNanoService {
         try {
             no1 = Integer.valueOf(params.get('no1'));
             no2 = Integer.valueOf(params.get('no2'));
+
+            output('result',no1+no2);
+            
             return no1+no2;
+
         } catch (Exception exp){
-            stderr('AdditionServiceException',exp);
+            error('AdditionServiceException',exp);
         }
         
         return null;
