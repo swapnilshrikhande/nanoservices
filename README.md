@@ -22,7 +22,9 @@ public class CalculatorNanoService extends AbstractNanoService {
 
         if(  resultValue == null ){
         	System.debug( 'Errors In The Service '+addService.errors());
-        }   
+        }
+
+        return resultValue;
     }
 }
 
