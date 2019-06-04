@@ -8,8 +8,6 @@ public class AdditionServicePassService extends AbstractNanoService {
         Integer outputResult = Integer.valueOf(params.get('result'));
 		System.debug(' outputResult ='+outputResult);
 
-
         return result;
     }
-
 }

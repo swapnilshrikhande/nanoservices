@@ -41,4 +41,6 @@ public interface NanoService extends System.Callable {
     NanoService fail(String nanoService);
     NanoService  pass(String nanoService);
     NanoService  thenExecute(String nanoService);
+    
+    NanoService execute(List<String> algorithmList,Map<String,Object> params);
 }
