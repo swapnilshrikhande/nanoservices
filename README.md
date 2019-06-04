@@ -2,6 +2,8 @@
 - Simple framework to develop modular apex services
 - Supports extensible service factory to add custom service factory
 - All default methods can be overriden to add custom functionality
+- Interoperable with [System.Callable](https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_interface_System_Callable.htm)
+
 
 ## Sample Usage
 
