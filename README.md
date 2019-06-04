@@ -83,7 +83,7 @@ public class AdditionServiceFailService extends AbstractNanoService {
 NanoService instance = new CalculatorNanoService();
 instance.execute(new Map<String,Object>{
     'no1' => 1,
-    'no2' => null
+    'no2' => 50
 });
 ```
 
