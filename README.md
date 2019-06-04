@@ -1,4 +1,4 @@
-# nanoservices for Salesforce Apex
+# nanoservices 
 - Simple framework to develop modular apex services
 - Supports extensible service factory to add custom service factory
 - All default methods can be overriden to add custom functionality
