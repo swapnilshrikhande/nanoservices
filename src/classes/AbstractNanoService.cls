@@ -1,4 +1,4 @@
-public abstract class AbstractNanoService implements NanoService{
+public abstract class AbstractNanoService implements NanoService {
     private Object              instream;
     private Object              outstream;
     
@@ -7,6 +7,7 @@ public abstract class AbstractNanoService implements NanoService{
     
     class AbstractNanoServiceException extends Exception {}
     
+    //Callable interface
     public virtual Object call(String action,Map<String,Object> params){
         return execute(action,params);
     }
@@ -25,8 +26,8 @@ public abstract class AbstractNanoService implements NanoService{
     }
     
     public virtual Object execute(Map<String,Object> params, NanoService callback){
-    	return callback.pipe ( result( this.execute(params) ) )
-                       .execute( output() );
+        result( this.execute(params) );
+    	return thenExecute(callback).result();
     }
 
     public virtual Object execute(Map<String,Object> params, String callback){
@@ -34,8 +35,8 @@ public abstract class AbstractNanoService implements NanoService{
     }
     
     public virtual Object  execute(String action,Map<String,Object> params,NanoService callback){
-        return callback.pipe( result( this.call(action,params) ) )
-                       .execute( output() );
+        result( this.call(action,params) );
+        return thenExecute(callback).result();
     }
 
     public virtual Object  execute(String action,Map<String,Object> params,String callback){
@@ -60,7 +61,11 @@ public abstract class AbstractNanoService implements NanoService{
     
     //always
     public virtual NanoService  thenExecute(NanoService service){
-        
+
+        //fall through to fail state if the current service fails
+        if( this.hasErrors() )
+            return this;
+
         return service.pipe( result() )
                       .thenExecute( output() );
         
@@ -70,10 +75,10 @@ public abstract class AbstractNanoService implements NanoService{
         return thenExecute( service(nanoService) );
     }
     
-    //execution passed
+    //execute a nanoservice on success
     public virtual NanoService  pass(NanoService service){
         
-        if( errorMap == null ){
+        if( this.hasErrors() == false ){
             return service.pipe( result() )
                           .thenExecute( output() );
         } else {
@@ -82,9 +87,10 @@ public abstract class AbstractNanoService implements NanoService{
         }
     }
 
+    //execute a nanoservice on success
     public virtual NanoService  pass(String nanoService){
         
-        if( errorMap == null ){
+        if( this.hasErrors() == false ){
             return pass( service(nanoService) );
         }
 
@@ -95,7 +101,7 @@ public abstract class AbstractNanoService implements NanoService{
     //execution failed
     public virtual NanoService fail(NanoService service){
         
-        if( errorMap != null ){
+        if( this.hasErrors() == true ){
             return service.pipe( result() )
                           .thenExecute( errors() );       
         } else {
@@ -104,8 +110,9 @@ public abstract class AbstractNanoService implements NanoService{
         }
     }
 
+    //execute a nanoservice on failure
     public virtual NanoService fail(String nanoService){
-        if( errorMap != null ) {
+        if( this.hasErrors() == true ) {
             return fail( service(nanoService) );
         }
 
@@ -123,28 +130,36 @@ public abstract class AbstractNanoService implements NanoService{
         return this;
     }
 
+    //read value piped in to a nanoservice
     public virtual Object pipe(){
         return this.instream;
     }
 
+    //pipe value to a nanoservice
     public virtual NanoService pipe(Object value){
         this.instream = value;
         return this;
     }
 
-
+    //returns value written to output stream
     public virtual Map<String,Object> output(){
         return this.out == null ? this.out = new Map<String,Object>() : this.out ;
     }
 
+
+    //add value to output stream, if another nano service is chained after current service
+    //this output is passed as an input parameter to the next service
     public virtual void output(String key,Object value) { 
         output().put(key,value);
     }
 
+    // set output stream value,if another nano service is chained after current service
+    //this output is passed as an input parameter to the next service
     public virtual void output(Map<String,Object> output){
         this.out = output;
     }
     
+    //set error, this will cause to execute any fail callbacks
     public virtual void error(String key,Object result){
 
         if( errorMap == null )
@@ -153,18 +168,27 @@ public abstract class AbstractNanoService implements NanoService{
         errorMap.put(key,result);
 	}
 
+    //errors if any
     public virtual Map<String,Object> errors(){
         return errorMap;
     }
 
+    public virtual Boolean hasErrors(){
+        return errorMap != null && !errorMap.isEmpty();
+    }
+
+    //final result of the nano service
     public virtual Object result() {
         return this.outstream;
     }
 
+    //set result, this is same as returning value from execute
+    //this value is automatically piped in to the next chained nanoservice
     public virtual Object result(Object value) {
         return this.outstream = value;
     }
     
+    //service discovery
     public virtual NanoService service(String name){
         return NanoServiceFactory.getService(name);
     }

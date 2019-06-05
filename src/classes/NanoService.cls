@@ -23,8 +23,10 @@ public interface NanoService extends System.Callable {
     void output(Map<String,Object> output);
     Map<String,Object> output();
     
+
     void error(String key,Object obj);
     Map<String,Object> errors();
+    Boolean hasErrors();
 
     NanoService pipe(Object value);
 
